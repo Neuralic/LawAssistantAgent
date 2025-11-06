@@ -97,7 +97,7 @@ def check_inbox_periodically():
 
         except Exception as e:
             print(f"Error in email worker: {e}")
-        time.sleep(15)  # Check every 300 seconds (5 minutes)
+        time.sleep(300)  # Check every 300 seconds (5 minutes)
 
 def process_and_respond(pdf_path, recipient_email, original_subject):
     try:
@@ -181,7 +181,8 @@ def send_email_feedback(recipient_email, original_subject, feedback):
         msg["From"] = EMAIL
         msg["To"] = recipient_email
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 587) as smtp:
+        # FIXED: Changed port from 587 to 465 to match SMTP_SSL
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
             smtp.login(EMAIL, PASSWORD)
             smtp.send_message(msg)
         print(f"[Financial Analyzer] Analysis report email sent to {recipient_email}")
@@ -207,4 +208,4 @@ def send_email_error(recipient_email, original_subject, error_message):
 
 if __name__ == "__main__":
     print("[Financial Analyzer] Email worker started. Monitoring inbox for financial documents...")
-    # check_inbox_periodically() # Uncomment to run directly for testing
+    check_inbox_periodically()  # Uncommented to run directly
