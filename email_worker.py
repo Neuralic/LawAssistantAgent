@@ -78,11 +78,18 @@ def test_email_connection():
         log_message("SUCCESS", "✓ IMAP connection successful!")
         mail.logout()
         
-        # Test SMTP connection
-        log_message("INFO", "Testing SMTP connection to smtp.gmail.com:465...")
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(EMAIL, PASSWORD)
-        log_message("SUCCESS", "✓ SMTP connection successful!")
+        # Test SMTP connection (try port 587 with STARTTLS first)
+        log_message("INFO", "Testing SMTP connection to smtp.gmail.com:587 (STARTTLS)...")
+        try:
+            with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+                smtp.starttls()
+                smtp.login(EMAIL, PASSWORD)
+            log_message("SUCCESS", "✓ SMTP connection successful on port 587!")
+        except Exception as e587:
+            log_message("WARNING", f"Port 587 failed: {e587}, trying port 465...")
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+                smtp.login(EMAIL, PASSWORD)
+            log_message("SUCCESS", "✓ SMTP connection successful on port 465!")
         
         return True
         
