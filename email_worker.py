@@ -97,7 +97,7 @@ def check_inbox_periodically():
 
         except Exception as e:
             print(f"Error in email worker: {e}")
-        time.sleep(300)  # Check every 300 seconds (5 minutes)
+        time.sleep(15)  # Check every 300 seconds (5 minutes)
 
 def process_and_respond(pdf_path, recipient_email, original_subject):
     try:
