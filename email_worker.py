@@ -219,7 +219,7 @@ def check_inbox_periodically():
             log_message("ERROR", "Unexpected error in email worker main loop", e)
         
         log_message("INFO", f"Waiting 5 minutes before next check... (Next check at {(datetime.now() + timedelta(seconds=300)).strftime('%H:%M:%S')})")
-        time.sleep(300)  # Check every 300 seconds (5 minutes)
+        time.sleep(10)  # Check every 300 seconds (5 minutes)
 
 def process_and_respond(pdf_path, recipient_email, original_subject):
     log_message("INFO", f"===== Starting PDF Processing =====")
