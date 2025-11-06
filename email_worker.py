@@ -181,7 +181,7 @@ def send_email_feedback(recipient_email, original_subject, feedback):
         msg["From"] = EMAIL
         msg["To"] = recipient_email
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 587) as smtp:
             smtp.login(EMAIL, PASSWORD)
             smtp.send_message(msg)
         print(f"[Financial Analyzer] Analysis report email sent to {recipient_email}")
