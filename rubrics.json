@@ -1,0 +1,100 @@
+{
+    "bank_statement": {
+        "name": "Bank Statement Analysis",
+        "description": "Comprehensive analysis of bank statements for legal review and due diligence.",
+        "criteria": [
+            {
+                "title": "Account Information & Identification",
+                "points": 15,
+                "description": "Extract account holder name, account number, bank name, statement period, account type (checking/savings), and any identifying information."
+            },
+            {
+                "title": "Balance Analysis",
+                "points": 20,
+                "description": "Identify opening balance, closing balance, average daily balance, minimum balance during period, and balance trends (increasing/decreasing/stable)."
+            },
+            {
+                "title": "Transaction Patterns",
+                "points": 25,
+                "description": "Analyze deposit frequency and amounts, withdrawal patterns, recurring transactions, large or unusual transactions (>$1000), and categorize transaction types (salary, rent, utilities, transfers, etc.)."
+            },
+            {
+                "title": "Income Sources",
+                "points": 15,
+                "description": "Identify all income sources, total income for period, regularity of income deposits, employer information if available, and any irregular income."
+            },
+            {
+                "title": "Expense Analysis",
+                "points": 15,
+                "description": "Calculate total expenses for period, identify major expense categories, recurring bills and obligations, discretionary spending, and debt payments visible."
+            },
+            {
+                "title": "Red Flags & Risk Assessment",
+                "points": 10,
+                "description": "Identify overdrafts or NSF fees, suspicious transactions, cash deposits/withdrawals that may need explanation, gambling or high-risk activities, liens or garnishments, and overall financial health assessment."
+            }
+        ]
+    },
+    "credit_report": {
+        "name": "Credit Report Analysis",
+        "description": "Detailed analysis of credit reports for legal and financial assessment.",
+        "criteria": [
+            {
+                "title": "Personal Information",
+                "points": 10,
+                "description": "Extract full name, current address, previous addresses, date of birth, Social Security Number (if visible), employment information, and verify accuracy."
+            },
+            {
+                "title": "Credit Score & Rating",
+                "points": 20,
+                "description": "Identify credit score(s), scoring model used (FICO, VantageScore), score range and interpretation (Excellent 750+, Good 700-749, Fair 650-699, Poor <650), and factors affecting score."
+            },
+            {
+                "title": "Credit Accounts Summary",
+                "points": 20,
+                "description": "List all open accounts, closed accounts, total number of accounts, types of accounts (credit cards, mortgages, auto loans, student loans, personal loans), credit limits, current balances, and available credit."
+            },
+            {
+                "title": "Payment History",
+                "points": 20,
+                "description": "Analyze on-time payment percentage, late payments (30/60/90+ days), missed payments, payment trends over time, oldest account age, and recent account activity."
+            },
+            {
+                "title": "Debt Analysis",
+                "points": 15,
+                "description": "Calculate total debt amount, credit utilization ratio (should be <30%), debt-to-income indicators, revolving vs installment debt, high balance accounts, and monthly payment obligations."
+            },
+            {
+                "title": "Negative Items & Public Records",
+                "points": 15,
+                "description": "Identify bankruptcies, foreclosures, repossessions, collections accounts, charge-offs, judgments, tax liens, inquiries (hard/soft), and dates these items will be removed from report."
+            }
+        ]
+    },
+    "generic": {
+        "name": "Generic Document Review",
+        "description": "General document analysis for various financial documents.",
+        "criteria": [
+            {
+                "title": "Document Identification",
+                "points": 25,
+                "description": "Identify document type, date, issuing entity, and key parties involved."
+            },
+            {
+                "title": "Key Information Extraction",
+                "points": 35,
+                "description": "Extract all relevant financial data, dates, amounts, and identifying information."
+            },
+            {
+                "title": "Analysis & Insights",
+                "points": 25,
+                "description": "Provide analysis of the document's contents, trends, patterns, and notable items."
+            },
+            {
+                "title": "Risk Assessment",
+                "points": 15,
+                "description": "Identify any red flags, inconsistencies, or items requiring further investigation."
+            }
+        ]
+    }
+}

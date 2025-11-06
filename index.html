@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Financial Document Analyzer - Legal Services</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="/style.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.271.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <!-- Navigation Sidebar -->
+  <div class="sidebar">
+    <div class="logo-container">
+      <div class="logo-icon">
+        <i class="fas fa-balance-scale"></i>
+      </div>
+      <h1>Financial Document Analyzer</h1>
+      <p class="subtitle">Legal Services Platform</p>
+    </div>
+    
+    <nav>
+      <ul>
+        <li class="active">
+          <i class="fas fa-chart-line"></i>
+          <span>Dashboard</span>
+        </li>
+        <li>
+          <i class="fas fa-upload"></i>
+          <span>Upload Document</span>
+        </li>
+        <li>
+          <i class="fas fa-file-invoice-dollar"></i>
+          <span>Document Types</span>
+        </li>
+        <li>
+          <i class="fas fa-history"></i>
+          <span>Review History</span>
+        </li>
+      </ul>
+    </nav>
+    
+    <div class="system-status">
+      <div class="status-indicator active"></div>
+      <span>Email Processing Active</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header>
+      <div class="header-left">
+        <h2>Document Review Dashboard</h2>
+        <p>AI-powered financial document analysis for legal professionals</p>
+      </div>
+      <div class="header-right">
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Search clients...">
+        </div>
+        <button class="btn upload-btn" onclick="openUploadModal()">
+          <i class="fas fa-upload"></i>
+          Upload Document
+        </button>
+        <button class="btn analyze-all-btn">
+          <i class="fas fa-bolt"></i>
+          Process All Documents
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="totalClients">0</h3>
+          <p>Documents Analyzed</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <i class="fas fa-file-alt"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="pendingReviews">0</h3>
+          <p>Pending Review</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon red">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="redFlagCount">0</h3>
+          <p>Red Flags Detected</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="results-card">
+      <div class="card-header">
+        <h3>
+          <i class="fas fa-list-check"></i>
+          Analysis Results
+        </h3>
+        <div class="controls">
+          <div class="filter">
+            <i class="fas fa-filter"></i>
+            <select id="documentFilter">
+              <option value="all">All Document Types</option>
+              <option value="Bank Statement">Bank Statements</option>
+              <option value="Credit Report">Credit Reports</option>
+              <option value="Generic">Other Documents</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th class="client-col">Client</th>
+              <th>Document Type</th>
+              <th>Assessment</th>
+              <th>Analysis</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <!-- Data will be populated here -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="card-footer">
+        <div class="refresh-info">
+          <i class="fas fa-sync-alt"></i>
+          <span>Auto-refresh in <span id="refreshCountdown">10</span>s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div id="uploadModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Upload Financial Document</h3>
+        <span class="close" onclick="closeUploadModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="document-type-selector">
+          <label>Document Type:</label>
+          <select id="documentTypeSelect">
+            <option value="auto">Auto-Detect</option>
+            <option value="bank_statement">Bank Statement</option>
+            <option value="credit_report">Credit Report</option>
+            <option value="generic">Other Financial Document</option>
+          </select>
+        </div>
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <h4>Drag & Drop PDF here</h4>
+          <p>or click to browse</p>
+          <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+        </div>
+        <div id="uploadProgress" class="upload-progress" style="display: none;">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p id="progressText">Analyzing document...</p>
+        </div>
+        <div id="uploadResult" class="upload-result" style="display: none;">
+          <!-- Results will be shown here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const resultsBody = document.getElementById("resultsBody");
+    const documentFilter = document.getElementById("documentFilter");
+    const refreshCountdown = document.getElementById("refreshCountdown");
+    let refreshTimer = 10;
+    let countdownInterval;
+
+    // Upload Modal Functions
+    function openUploadModal() {
+      document.getElementById("uploadModal").style.display = "block";
+    }
+
+    function closeUploadModal() {
+      document.getElementById("uploadModal").style.display = "none";
+      document.getElementById("uploadProgress").style.display = "none";
+      document.getElementById("uploadResult").style.display = "none";
+      document.getElementById("uploadArea").style.display = "block";
+    }
+
+    // File Upload Setup
+    const uploadArea = document.getElementById("uploadArea");
+    const fileInput = document.getElementById("fileInput");
+
+    uploadArea.addEventListener("click", () => fileInput.click());
+    
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadArea.classList.add("drag-over");
+    });
+    
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.classList.remove("drag-over");
+    });
+    
+    uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove("drag-over");
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].type === "application/pdf") {
+        handleFileUpload(files[0]);
+      }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        handleFileUpload(e.target.files[0]);
+      }
+    });
+
+    async function handleFileUpload(file) {
+      const formData = new FormData();
+      formData.append("file", file);
+      const documentType = document.getElementById("documentTypeSelect").value;
+
+      document.getElementById("uploadArea").style.display = "none";
+      document.getElementById("uploadProgress").style.display = "block";
+
+      try {
+        const response = await fetch(`/upload-pdf/?document_type=${documentType}`, {
+          method: "POST",
+          body: formData
+        });
+
+        const result = await response.json();
+        
+        document.getElementById("uploadProgress").style.display = "none";
+        document.getElementById("uploadResult").style.display = "block";
+        
+        const redFlagBadge = result.red_flags && result.red_flags !== "None identified" 
+          ? `<div class="red-flag-badge"><i class="fas fa-exclamation-triangle"></i> Red Flags Detected</div>` 
+          : '';
+        
+        document.getElementById("uploadResult").innerHTML = `
+          <div class="success-message">
+            <i class="fas fa-check-circle"></i>
+            <h4>Document Analyzed Successfully!</h4>
+            ${redFlagBadge}
+            <p><strong>Client:</strong> ${result.client_name}</p>
+            <p><strong>Document Type:</strong> ${result.document_type.replace('_', ' ').toUpperCase()}</p>
+            <p><strong>Assessment:</strong> ${result.overall_assessment}</p>
+            <div class="feedback-preview">
+              <strong>Summary:</strong>
+              <p>${result.analysis_summary}</p>
+            </div>
+          </div>
+        `;
+        
+        // Refresh results
+        setTimeout(() => {
+          fetchResults();
+          closeUploadModal();
+        }, 4000);
+        
+      } catch (error) {
+        document.getElementById("uploadProgress").style.display = "none";
+        document.getElementById("uploadResult").style.display = "block";
+        document.getElementById("uploadResult").innerHTML = `
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <h4>Analysis Failed</h4>
+            <p>Error: ${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    async function fetchResults() {
+      try {
+        const res = await fetch("/results/");
+        const data = await res.json();
+        
+        // Count red flags
+        const redFlagCount = data.filter(d => d.red_flags && d.red_flags !== "None identified").length;
+        
+        // Update stats
+        document.getElementById("totalClients").textContent = data.length;
+        document.getElementById("pendingReviews").textContent = data.filter(d => !d.grade_output).length;
+        document.getElementById("redFlagCount").textContent = redFlagCount;
+        
+        // Filter data if needed
+        const filterValue = documentFilter.value;
+        const filteredData = filterValue === "all" 
+          ? data 
+          : data.filter(entry => entry.course === filterValue);
+        
+        renderResults(filteredData);
+      } catch (error) {
+        console.error("Error fetching results:", error);
+      }
+    }
+
+    function renderResults(data) {
+      resultsBody.innerHTML = "";
+      
+      if (data.length === 0) {
+        resultsBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">
+              <i class="fas fa-inbox"></i>
+              <p>No documents analyzed yet</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      data.forEach(entry => {
+        const statusClass = entry.grade_output ? "status-complete" : "status-pending";
+        const statusText = entry.grade_output ? "Reviewed" : "Pending";
+        
+        // Extract assessment from grade_output
+        const assessmentMatch = entry.grade_output ? entry.grade_output.match(/Assessment:\s*([^\n]+)/) : null;
+        const assessment = assessmentMatch ? assessmentMatch[1] : "Pending Review";
+        
+        // Determine assessment class
+        let assessmentClass = "assessment-moderate";
+        if (assessment.includes("Low Risk")) assessmentClass = "assessment-low";
+        else if (assessment.includes("High Risk")) assessmentClass = "assessment-high";
+        else if (assessment.includes("Requires Review")) assessmentClass = "assessment-high";
+        
+        // Check for red flags
+        const hasRedFlags = entry.red_flags && entry.red_flags !== "None identified";
+        const redFlagIcon = hasRedFlags ? '<i class="fas fa-exclamation-triangle red-flag-icon" title="Red flags detected"></i>' : '';
+        
+        resultsBody.innerHTML += `
+          <tr>
+            <td class="client-cell">
+              <div class="client-info">
+                <div class="avatar">${entry.name ? entry.name.charAt(0) : '?'}</div>
+                <div>
+                  <div class="client-name">${entry.name || "N/A"} ${redFlagIcon}</div>
+                  <div class="client-email">${entry.email || ""}</div>
+                </div>
+              </div>
+            </td>
+            <td class="document-cell">
+              <span class="document-badge">${entry.course || "N/A"}</span>
+            </td>
+            <td class="assessment-cell">
+              <span class="assessment-badge ${assessmentClass}">${assessment}</span>
+            </td>
+            <td class="analysis-cell">
+              ${entry.grade_output 
+                ? `<div class="analysis-content">${entry.grade_output.replace(/Assessment:[^\n]+\n\n?/, '').substring(0, 200)}...</div>` 
+                : '<div class="status-badge status-pending">Pending AI Analysis</div>'}
+            </td>
+            <td class="status-cell">
+              <div class="status-badge ${statusClass}">${statusText}</div>
+            </td>
+            <td class="actions-cell">
+              <button class="icon-btn" title="Send to client" onclick="viewDetails('${entry.name}')">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+              <button class="icon-btn" title="Download report">
+                <i class="fas fa-download"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function viewDetails(clientName) {
+      alert(`View detailed analysis for: ${clientName}\n\n(Full document viewer would open here)`);
+    }
+
+    function startRefreshCountdown() {
+      clearInterval(countdownInterval);
+      refreshTimer = 10;
+      
+      countdownInterval = setInterval(() => {
+        refreshTimer--;
+        refreshCountdown.textContent = refreshTimer;
+        
+        if (refreshTimer <= 0) {
+          fetchResults();
+          refreshTimer = 10;
+        }
+      }, 1000);
+    }
+
+    // Event Listeners
+    documentFilter.addEventListener("change", fetchResults);
+    
+    document.querySelector(".analyze-all-btn").addEventListener("click", async () => {
+      const btn = document.querySelector(".analyze-all-btn");
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+      btn.disabled = true;
+      
+      try {
+        const response = await fetch("/analyze-all/", { method: "POST" });
+        const data = await response.json();
+        console.log("Analysis complete:", data);
+        fetchResults();
+      } catch (error) {
+        console.error("Analysis failed:", error);
+      }
+      
+      setTimeout(() => {
+        btn.innerHTML = '<i class="fas fa-bolt"></i> Process All Documents';
+        btn.disabled = false;
+      }, 2000);
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener("click", (e) => {
+      const modal = document.getElementById("uploadModal");
+      if (e.target === modal) {
+        closeUploadModal();
+      }
+    });
+
+    // Initialize
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchResults();
+      startRefreshCountdown();
+      setInterval(fetchResults, 10000); // Auto-refresh every 10 seconds
+    });
+  </script>
+</body>
+</html>
