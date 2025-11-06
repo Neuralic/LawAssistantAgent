@@ -1,8 +1,8 @@
 fastapi
 uvicorn[standard]
 PyPDF2
-openai
 python-multipart
 APScheduler
 python-dotenv
 google-generativeai
+resend
