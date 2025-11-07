@@ -14,15 +14,21 @@ import traceback
 
 load_dotenv()
 
-EMAIL = os.getenv("EMAIL_ADDRESS")
-IMAP_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Still needed for reading emails
+# Gmail credentials for RECEIVING emails via IMAP
+GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")  # Your actual Gmail for receiving PDFs
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")  # Gmail app password
+
+# Resend credentials for SENDING emails
+RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")  # Default to free tier
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+
 INCOMING_DIR = "incoming_pdfs"
 
 os.makedirs(INCOMING_DIR, exist_ok=True)
 
 # Configure Resend with detailed logging
-print(f"[DEBUG] EMAIL_ADDRESS from env: {EMAIL}")
+print(f"[DEBUG] GMAIL_ADDRESS (for receiving): {GMAIL_ADDRESS}")
+print(f"[DEBUG] RESEND_FROM_EMAIL (for sending): {RESEND_FROM_EMAIL}")
 print(f"[DEBUG] RESEND_API_KEY present: {bool(RESEND_API_KEY)}")
 if RESEND_API_KEY:
     print(f"[DEBUG] RESEND_API_KEY length: {len(RESEND_API_KEY)}")
@@ -47,7 +53,7 @@ def check_inbox_periodically():
     while True:
         try:
             mail = imaplib.IMAP4_SSL("imap.gmail.com")
-            mail.login(EMAIL, IMAP_PASSWORD)
+            mail.login(GMAIL_ADDRESS, GMAIL_PASSWORD)
             mail.select("inbox")
 
             # Calculate date for 24 hours ago
@@ -208,7 +214,7 @@ def send_email_feedback(recipient_email, original_subject, feedback):
         clean_email = email_match.group(1) if email_match else recipient_email
         
         print(f"[EMAIL SEND] Cleaned recipient email: {clean_email}")
-        print(f"[EMAIL SEND] From address (EMAIL var): {EMAIL}")
+        print(f"[EMAIL SEND] From address (RESEND_FROM_EMAIL): {RESEND_FROM_EMAIL}")
         print(f"[EMAIL SEND] Subject: Re: {original_subject} - Financial Document Analysis Report")
         print(f"[EMAIL SEND] Feedback preview (first 200 chars): {feedback[:200]}")
         
@@ -217,7 +223,7 @@ def send_email_feedback(recipient_email, original_subject, feedback):
         
         # Build email params
         params = {
-            "from": f"Financial Analyzer <{EMAIL}>",
+            "from": f"Financial Analyzer <{RESEND_FROM_EMAIL}>",
             "to": [clean_email],
             "subject": f"Re: {original_subject} - Financial Document Analysis Report",
             "text": feedback
@@ -271,7 +277,7 @@ def send_email_error(recipient_email, original_subject, error_message):
         clean_email = email_match.group(1) if email_match else recipient_email
         
         print(f"[ERROR EMAIL] Cleaned recipient email: {clean_email}")
-        print(f"[ERROR EMAIL] From address: {EMAIL}")
+        print(f"[ERROR EMAIL] From address: {RESEND_FROM_EMAIL}")
         
         error_body = f"An error occurred while processing your financial document (Subject: {original_subject}):\n\n{error_message}\n\nPlease ensure the document is a valid PDF and try again, or contact our support team."
         
@@ -279,7 +285,7 @@ def send_email_error(recipient_email, original_subject, error_message):
         
         # Send via Resend API
         params = {
-            "from": f"Financial Analyzer <{EMAIL}>",
+            "from": f"Financial Analyzer <{RESEND_FROM_EMAIL}>",
             "to": [clean_email],
             "subject": f"Re: {original_subject} - Error Processing Document",
             "text": error_body
@@ -304,6 +310,7 @@ def send_email_error(recipient_email, original_subject, error_message):
 
 if __name__ == "__main__":
     print("[Financial Analyzer] Email worker started. Monitoring inbox for financial documents...")
-    print(f"[DEBUG] Monitoring email: {EMAIL}")
+    print(f"[DEBUG] Monitoring Gmail: {GMAIL_ADDRESS}")
+    print(f"[DEBUG] Sending from (Resend): {RESEND_FROM_EMAIL}")
     print(f"[DEBUG] Resend configured: {bool(RESEND_API_KEY)}")
     # check_inbox_periodically() # Uncomment to run directly for testing
