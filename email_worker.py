@@ -10,6 +10,7 @@ from grader import analyze_document
 from grader_utils import write_result_to_file
 from datetime import datetime, date, timedelta
 import json
+import traceback
 
 load_dotenv()
 
@@ -20,8 +21,12 @@ INCOMING_DIR = "incoming_pdfs"
 
 os.makedirs(INCOMING_DIR, exist_ok=True)
 
-# Configure Resend
+# Configure Resend with detailed logging
+print(f"[DEBUG] EMAIL_ADDRESS from env: {EMAIL}")
+print(f"[DEBUG] RESEND_API_KEY present: {bool(RESEND_API_KEY)}")
 if RESEND_API_KEY:
+    print(f"[DEBUG] RESEND_API_KEY length: {len(RESEND_API_KEY)}")
+    print(f"[DEBUG] RESEND_API_KEY starts with: {RESEND_API_KEY[:7] if len(RESEND_API_KEY) > 7 else 'TOO_SHORT'}")
     resend.api_key = RESEND_API_KEY
     print("[Financial Analyzer] Resend API configured successfully.")
 else:
@@ -104,7 +109,8 @@ def check_inbox_periodically():
 
         except Exception as e:
             print(f"Error in email worker: {e}")
-        time.sleep(10)  # Check every 30 seconds for swift response
+            traceback.print_exc()
+        time.sleep(10)  # Check every 10 seconds
 
 def process_and_respond(pdf_path, recipient_email, original_subject):
     try:
@@ -172,22 +178,44 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
         feedback_for_email += f"\nRECOMMENDATIONS:\n{analysis_result.get('recommendations', 'N/A')}\n"
         feedback_for_email += "\n---\nThis is an automated analysis. Please review the original document for complete details."
 
+        print(f"[DEBUG] About to call send_email_feedback")
+        print(f"[DEBUG] Recipient: {recipient_email}")
+        print(f"[DEBUG] Subject: {original_subject}")
+        print(f"[DEBUG] Feedback length: {len(feedback_for_email)} characters")
+        
         send_email_feedback(recipient_email, original_subject, feedback_for_email)
         print(f"[Financial Analyzer] Analysis report sent to {recipient_email}")
 
     except Exception as e:
-        print(f"Error processing and responding to PDF {pdf_path}: {e}")
+        print(f"[ERROR] Error processing and responding to PDF {pdf_path}: {e}")
+        print(f"[ERROR] Full traceback:")
+        traceback.print_exc()
         error_msg_to_send = str(e)
         send_email_error(recipient_email, original_subject, error_msg_to_send)
 
 def send_email_feedback(recipient_email, original_subject, feedback):
+    """Send analysis feedback email with comprehensive error logging"""
+    print(f"\n{'='*60}")
+    print(f"[EMAIL SEND] Starting send_email_feedback function")
+    print(f"{'='*60}")
+    
     try:
         # Extract email address from "Name <email@domain.com>" format
         import re
+        print(f"[EMAIL SEND] Raw recipient_email: {recipient_email}")
+        
         email_match = re.search(r'<(.+?)>', recipient_email)
         clean_email = email_match.group(1) if email_match else recipient_email
         
-        # Send via Resend API
+        print(f"[EMAIL SEND] Cleaned recipient email: {clean_email}")
+        print(f"[EMAIL SEND] From address (EMAIL var): {EMAIL}")
+        print(f"[EMAIL SEND] Subject: Re: {original_subject} - Financial Document Analysis Report")
+        print(f"[EMAIL SEND] Feedback preview (first 200 chars): {feedback[:200]}")
+        
+        # Verify Resend API key is still set
+        print(f"[EMAIL SEND] Resend API key configured: {bool(resend.api_key)}")
+        
+        # Build email params
         params = {
             "from": f"Financial Analyzer <{EMAIL}>",
             "to": [clean_email],
@@ -195,20 +223,59 @@ def send_email_feedback(recipient_email, original_subject, feedback):
             "text": feedback
         }
         
+        print(f"[EMAIL SEND] Email params prepared:")
+        print(f"  - from: {params['from']}")
+        print(f"  - to: {params['to']}")
+        print(f"  - subject length: {len(params['subject'])}")
+        print(f"  - text length: {len(params['text'])}")
+        
+        print(f"[EMAIL SEND] Calling resend.Emails.send()...")
         response = resend.Emails.send(params)
-        print(f"[Financial Analyzer] Analysis report email sent to {clean_email} via Resend - ID: {response.get('id')}")
+        
+        print(f"[EMAIL SEND] ✅ SUCCESS! Response received:")
+        print(f"[EMAIL SEND] Response type: {type(response)}")
+        print(f"[EMAIL SEND] Response content: {response}")
+        
+        if isinstance(response, dict):
+            email_id = response.get('id', 'NO_ID')
+            print(f"[EMAIL SEND] Email ID: {email_id}")
+        
+        print(f"[Financial Analyzer] Analysis report email sent to {clean_email} via Resend")
+        print(f"{'='*60}\n")
         
     except Exception as e:
-        print(f"[Financial Analyzer] Error sending analysis report to {recipient_email}: {e}")
+        print(f"\n{'='*60}")
+        print(f"[EMAIL SEND] ❌ ERROR occurred!")
+        print(f"{'='*60}")
+        print(f"[EMAIL SEND] Error type: {type(e).__name__}")
+        print(f"[EMAIL SEND] Error message: {str(e)}")
+        print(f"[EMAIL SEND] Full traceback:")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        
+        # Re-raise to let calling function know it failed
+        raise
 
 def send_email_error(recipient_email, original_subject, error_message):
+    """Send error notification email with comprehensive error logging"""
+    print(f"\n{'='*60}")
+    print(f"[ERROR EMAIL] Starting send_email_error function")
+    print(f"{'='*60}")
+    
     try:
         # Extract email address from "Name <email@domain.com>" format
         import re
+        print(f"[ERROR EMAIL] Raw recipient_email: {recipient_email}")
+        
         email_match = re.search(r'<(.+?)>', recipient_email)
         clean_email = email_match.group(1) if email_match else recipient_email
         
+        print(f"[ERROR EMAIL] Cleaned recipient email: {clean_email}")
+        print(f"[ERROR EMAIL] From address: {EMAIL}")
+        
         error_body = f"An error occurred while processing your financial document (Subject: {original_subject}):\n\n{error_message}\n\nPlease ensure the document is a valid PDF and try again, or contact our support team."
+        
+        print(f"[ERROR EMAIL] Error message length: {len(error_body)}")
         
         # Send via Resend API
         params = {
@@ -218,12 +285,25 @@ def send_email_error(recipient_email, original_subject, error_message):
             "text": error_body
         }
         
+        print(f"[ERROR EMAIL] Calling resend.Emails.send()...")
         response = resend.Emails.send(params)
-        print(f"[Financial Analyzer] Error email sent to {clean_email} via Resend - ID: {response.get('id')}")
+        
+        print(f"[ERROR EMAIL] ✅ SUCCESS! Response: {response}")
+        print(f"[Financial Analyzer] Error email sent to {clean_email} via Resend")
+        print(f"{'='*60}\n")
         
     except Exception as e:
-        print(f"[Financial Analyzer] Error sending error email to {recipient_email}: {e}")
+        print(f"\n{'='*60}")
+        print(f"[ERROR EMAIL] ❌ Failed to send error email!")
+        print(f"{'='*60}")
+        print(f"[ERROR EMAIL] Error type: {type(e).__name__}")
+        print(f"[ERROR EMAIL] Error message: {str(e)}")
+        print(f"[ERROR EMAIL] Full traceback:")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
 
 if __name__ == "__main__":
     print("[Financial Analyzer] Email worker started. Monitoring inbox for financial documents...")
+    print(f"[DEBUG] Monitoring email: {EMAIL}")
+    print(f"[DEBUG] Resend configured: {bool(RESEND_API_KEY)}")
     # check_inbox_periodically() # Uncomment to run directly for testing
