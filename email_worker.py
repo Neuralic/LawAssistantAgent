@@ -15,6 +15,7 @@ import traceback
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 load_dotenv()
 
@@ -50,6 +51,9 @@ print(f"[DEBUG] Gmail API configured for sending with manual access token")
 # Gmail API setup
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
+# Thread pool for parallel processing
+executor = ThreadPoolExecutor(max_workers=3)
+
 def get_gmail_service():
     """Get Gmail API service using manual access token"""
     try:
@@ -62,13 +66,11 @@ def get_gmail_service():
             scopes=SCOPES
         )
         
-        # Test the credentials by building the service
+        # Build the service - don't test it, will verify on first send
         service = build('gmail', 'v1', credentials=creds)
         
-        # Verify the token works by making a test call
-        service.users().getProfile(userId='me').execute()
-        
-        print("[SUCCESS] ✅ Gmail API service initialized successfully with access token")
+        print("[SUCCESS] ✅ Gmail API service initialized with access token")
+        print("[INFO] Token will be validated on first email send")
         return service
         
     except Exception as e:
@@ -77,21 +79,17 @@ def get_gmail_service():
         print(f"{'='*60}")
         print(f"Error type: {type(e).__name__}")
         print(f"Error message: {e}")
-        print(f"\nPossible causes:")
-        print(f"1. GMAIL_ACCESS_TOKEN has expired (tokens expire in ~1 hour)")
-        print(f"2. Invalid or malformed access token")
-        print(f"3. Token doesn't have required scopes")
-        print(f"\nPlease generate a new access token and update the GMAIL_ACCESS_TOKEN environment variable.")
+        print(f"\nPlease check your Gmail API credentials.")
         print(f"{'='*60}\n")
         traceback.print_exc()
-        raise SystemExit(f"Gmail API initialization failed: {e}")
+        return None
 
-# Initialize Gmail service - fail fast if token is invalid
-try:
-    gmail_service = get_gmail_service()
-except SystemExit:
-    print("\n[FATAL] Cannot continue without valid Gmail API credentials. Exiting.")
-    exit(1)
+# Initialize Gmail service
+gmail_service = get_gmail_service()
+
+if not gmail_service:
+    print("\n[WARNING] Gmail API service not available. Email sending will fail.")
+    print("[INFO] App will continue but cannot send emails.")
 
 # Document type detection helper
 def detect_document_type(text):
@@ -158,8 +156,9 @@ def check_inbox_periodically():
                                     f.write(part.get_payload(decode=True))
                                 print(f"Downloaded PDF: {filename}")
 
-                                # Process PDF, analyze document, and send email
-                                process_and_respond(filepath, sender_email, subject)
+                                # Process in background thread for swift response
+                                executor.submit(process_and_respond, filepath, sender_email, subject)
+                                print(f"[Financial Analyzer] Queued processing for {filename}")
                             else:
                                 print("PDF attachment found but no filename.")
                     except AttributeError as ae:
@@ -180,7 +179,7 @@ def check_inbox_periodically():
             traceback.print_exc()
         
         # Check every 30 seconds for swift response
-        time.sleep(30)
+        time.sleep(10)
 
 def process_and_respond(pdf_path, recipient_email, original_subject):
     try:
@@ -267,13 +266,16 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
 
     except Exception as e:
         print(f"Error processing and responding to PDF {pdf_path}: {e}")
-        import traceback
         traceback.print_exc()
         error_msg_to_send = str(e)
         send_email_error(recipient_email, original_subject, error_msg_to_send)
 
 def send_email_via_gmail_api(to_email, subject, body):
     """Send email using Gmail API"""
+    if not gmail_service:
+        print("[ERROR] Gmail service not available. Cannot send email.")
+        return False
+    
     try:
         print(f"\n{'='*60}")
         print(f"[Gmail API] Preparing to send email")
@@ -316,8 +318,9 @@ def send_email_via_gmail_api(to_email, subject, body):
         print(f"[Gmail API] Error: {e}")
         
         # Check if it's an expired token error
-        if "invalid_grant" in str(e) or "Invalid Credentials" in str(e):
-            print(f"\n[Gmail API] ⚠️  ACCESS TOKEN HAS EXPIRED!")
+        error_str = str(e).lower()
+        if "invalid_grant" in error_str or "invalid credentials" in error_str or "token" in error_str:
+            print(f"\n[Gmail API] ⚠️  ACCESS TOKEN MAY HAVE EXPIRED!")
             print(f"[Gmail API] Please generate a new access token and update GMAIL_ACCESS_TOKEN")
         
         traceback.print_exc()
