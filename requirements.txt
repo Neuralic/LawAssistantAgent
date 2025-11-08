@@ -6,3 +6,7 @@ APScheduler
 python-dotenv
 google-generativeai
 resend
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
